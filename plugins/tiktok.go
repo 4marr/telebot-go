@@ -30,12 +30,10 @@ func TikTok(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 	chatID := update.Message.Chat.ID
 	text := update.Message.Text
 
-	// Tampilkan pesan loading
-	loading := tgbotapi.NewMessage(chatID, "⏳ *Mengambil data dari TikTok...*")
+	loading := tgbotapi.NewMessage(chatID, escapeMarkdownV2("⏳ *Mengambil data dari TikTok...*"))
 	loading.ParseMode = "MarkdownV2"
 	sentLoading, _ := bot.Send(loading)
 
-	// Panggil API TikTok
 	url := fmt.Sprintf("%s/api/download/tiktok?url=%s", apiURL, text)
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != 200 {
@@ -54,23 +52,18 @@ func TikTok(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 		return
 	}
 
-	// Jika ada gambar (photomode)
 	if len(result.Result.Images) > 0 {
 		for i, img := range result.Result.Images {
 			photo := tgbotapi.NewPhoto(chatID, tgbotapi.FileURL(img))
 			photo.Caption = fmt.Sprintf("ini kak gambar ke %d", i+1)
-
-			// Gunakan MarkdownV2 (auto-escape caption jika ingin lebih aman)
 			photo.ParseMode = "MarkdownV2"
-
-			// Hanya gambar pertama yang dikasih tombol musik
 			if i == 0 && result.Result.Music != "" {
-				btn := tgbotapi.NewInlineKeyboardMarkup(
+				buttons := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonURL("🎵 Music", result.Result.Music),
 					),
 				)
-				photo.ReplyMarkup = btn
+				photo.ReplyMarkup = buttons
 			}
 
 			bot.Send(photo)
@@ -80,19 +73,16 @@ func TikTok(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 		return
 	}
 
-	// Jika post berupa video
 	video := tgbotapi.NewVideo(chatID, tgbotapi.FileURL(result.Result.Play))
 	video.Caption = "Ini kak videonya"
 	video.ParseMode = "MarkdownV2"
 
-	// Inline buttons
 	buttons := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL("🎞 Tanpa Watermark", result.Result.Play),
-			tgbotapi.NewInlineKeyboardButtonURL("📹 Watermark", result.Result.WmPlay),
+			tgbotapi.NewInlineKeyboardButtonURL("📹 WM", result.Result.WmPlay),
+			tgbotapi.NewInlineKeyboardButtonURL("🎥 HD", result.Result.HdPlay),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonURL("🎥 HD", result.Result.HdPlay),
 			tgbotapi.NewInlineKeyboardButtonURL("🎵 Music", result.Result.Music),
 		),
 	)
@@ -100,6 +90,5 @@ func TikTok(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 
 	bot.Send(video)
 
-	// Hapus pesan loading
 	DeleteMessage(bot, chatID, sentLoading.MessageID)
 }

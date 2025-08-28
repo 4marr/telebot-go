@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"time"
 
 	"github.com/fatih/color"
+	"github.com/fsnotify/fsnotify"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 
@@ -31,7 +33,36 @@ func launchBot(botName string) {
 	time.Sleep(300 * time.Millisecond)
 }
 
-func tikTokRegex(text string) bool {
+func WatchPluginsFolder(folder string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	err = watcher.Add(folder)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("🔍 Watching folder: %s", folder)
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			log.Printf("📦 Plugins folder changed: %s", event)
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Println("Watcher error:", err)
+		}
+	}
+}
+
+func TikTokRegex(text string) bool {
 	re := regexp.MustCompile(`(?i)https?://(www\.)?(vm|vt|m|www)?\.?tiktok\.com/[^\s]+`)
 	return re.MatchString(text)
 }
@@ -44,12 +75,14 @@ func main() {
 		log.Fatal("BOT_TOKEN environment variable is not set")
 	}
 
+	go WatchPluginsFolder(filepath.Join(".", "plugins"))
+
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	bot.Debug = false
+	bot.Debug = true
 	launchBot(bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
@@ -78,7 +111,7 @@ func main() {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Perintah tidak dikenal. Coba /start atau /gpt.")
 				bot.Send(msg)
 			}
-		} else if tikTokRegex(update.Message.Text) {
+		} else if TikTokRegex(update.Message.Text) {
 			plugins.TikTok(bot, &update, APIURL)
 		} else {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Pesan tidak dikenali. Gunakan /start, /gpt, atau kirim link TikTok.")

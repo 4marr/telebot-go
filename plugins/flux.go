@@ -18,7 +18,7 @@ func Flux(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 		return
 	}
 
-	loadingMsg := tgbotapi.NewMessage(chatID, "🎨 *Sedang membuat gambar...*")
+	loadingMsg := tgbotapi.NewMessage(chatID, escapeMarkdownV2("🎨 *Sedang membuat gambar...*"))
 	loadingMsg.ParseMode = "MarkdownV2"
 	sentMsg, _ := bot.Send(loadingMsg)
 
@@ -46,6 +46,5 @@ func Flux(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 	photoMsg.Caption = args
 	bot.Send(photoMsg)
 
-	// Hapus pesan loading
 	DeleteMessage(bot, chatID, sentMsg.MessageID)
 }

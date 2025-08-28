@@ -44,7 +44,6 @@ func FetchGPTResponse(apiURL string, prompt string) (string, error) {
 	return gptRes.Result, nil
 }
 
-// Handler untuk /gpt
 func GPT(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 	chatID := update.Message.Chat.ID
 	args := update.Message.CommandArguments()
@@ -54,15 +53,12 @@ func GPT(bot *tgbotapi.BotAPI, update *tgbotapi.Update, apiURL string) {
 		return
 	}
 
-	// Kirim pesan loading...
-	loadingMsg := tgbotapi.NewMessage(chatID, "⏳ *Memproses permintaan...*")
+	loadingMsg := tgbotapi.NewMessage(chatID, escapeMarkdownV2("⏳ *Memproses permintaan...*"))
 	loadingMsg.ParseMode = "MarkdownV2"
 	sentMsg, _ := bot.Send(loadingMsg)
 
-	// Panggil API
 	response, err := FetchGPTResponse(apiURL, args)
 
-	// Hapus pesan loading
 	DeleteMessage(bot, chatID, sentMsg.MessageID)
 
 	if err != nil {
